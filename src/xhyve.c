@@ -50,6 +50,10 @@
 #include <xhyve/support/cpuset.h>
 #include <xhyve/vmm/vmm_api.h>
 
+#ifdef XHYVE_CONFIG_NESTED
+#include <xhyve/vmm/nested.h>
+#endif
+
 #include <xhyve/xhyve.h>
 #include <xhyve/acpi.h>
 #include <xhyve/inout.h>
@@ -410,6 +414,9 @@ vmexit_spinup_ap(struct vm_exit *vme, int *pvcpu)
 static int
 vmexit_vmx(struct vm_exit *vme, int *pvcpu)
 {
+#ifdef XHYVE_CONFIG_NESTED
+	return nested_vmexit_vmx(vme, pvcpu);
+#else
 	fprintf(stderr, "vm exit[%d]\n", *pvcpu);
 	fprintf(stderr, "\treason\t\tVMX\n");
 	fprintf(stderr, "\trip\t\t0x%016llx\n", vme->rip);
@@ -421,6 +428,7 @@ vmexit_vmx(struct vm_exit *vme, int *pvcpu)
 	fprintf(stderr, "\tinst_type\t\t%d\n", vme->u.vmx.inst_type);
 	fprintf(stderr, "\tinst_error\t\t%d\n", vme->u.vmx.inst_error);
 	return (VMEXIT_ABORT);
+#endif
 }
 
 static int
