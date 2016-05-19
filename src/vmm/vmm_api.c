@@ -45,6 +45,10 @@
 #include <xhyve/vmm/io/vioapic.h>
 #include <xhyve/vmm/io/vrtc.h>
 
+#ifdef XHYVE_CONFIG_NESTED
+#include <xhyve/vmm/intel/vmcs.h>
+#endif
+
 static struct vm *vm;
 static int memflags;
 static uint32_t lowmem_limit;
@@ -829,3 +833,68 @@ xh_vm_emulate_instruction(int vcpu, uint64_t gpa, struct vie *vie,
 
 	return (error);
 }
+
+#ifdef XHYVE_CONFIG_NESTED
+// 6-2 Vol. 3A Table 6-1
+#define GP_FAULT 13
+static int
+xh_get_cpl(int vcpu) {
+	// Return bottom two bits of CS segment selector access field
+	// See Vol. 3A 3-7
+	return vmcs_read(vcpu, VMCS_GUEST_CS_SELECTOR) & 3;
+}
+
+int
+xh_vm_emulate_l1_vmxon(int vcpu) {
+	int ret;
+	vcpu_freeze(vcpu, true);
+	// If CPL > 0 or other reasons don't turn on vmx.
+	// FIXME: see other MSR conditions in Vol. 3C 30-27
+	// Ignoring certain MSRs for this proof of concept.
+	int priv = xh_get_cpl(vcpu);
+	if (priv > 0) {
+		// Let the instruction succeed and the VM continue -- we will deliver
+		// a #GP fault
+		xh_vm_lapic_irq(vcpu, GP_FAULT);
+		ret = 0;
+		goto out;
+	}
+	// If vmx is off, turn it on, and continue.
+	// otherwise, turn it off and fail.
+	if (nested_is_vmxon(vm, vcpu) == false) {
+		nested_set_vmxon(vm, vcpu, true);
+		ret = 0;
+	} else {
+		ret = 1;
+	}
+out:
+	vcpu_freeze(vcpu, false);
+	return ret;
+}
+
+/*
+static void
+free_nested_child_vms(int vcpu) {
+	// FIXME DO WORK
+}
+*/
+
+int
+xh_vm_emulate_l1_vmxoff(int vcpu) {
+	vcpu_freeze(vcpu, true);
+	// If CPL > 0 don't turn off vmx.
+	int priv = xh_get_cpl(vcpu);
+	if (priv > 0) {
+		// Let the instruction succeed and the VM continue -- we will deliver
+		// a #GP fault
+		xh_vm_lapic_irq(vcpu, GP_FAULT);
+		goto out;
+	}
+	// bye bye
+	//free_nested_child_vms(vcpu);
+	nested_set_vmxon(vm, vcpu, false);
+out:
+	vcpu_freeze(vcpu, false);
+	return 0;
+}
+#endif
