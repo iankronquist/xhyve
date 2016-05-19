@@ -27,6 +27,9 @@
  * $FreeBSD$
  */
 
+//FIXME Debug only
+#include <stdio.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -61,6 +64,16 @@ struct vlapic;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
+
+#ifdef XHYVE_CONFIG_NESTED
+
+// FIXME should have fields and things
+struct vmcs02{
+	int useme;
+};
+
+#endif
+
 /*
  * Initialization:
  * (a) allocated when vcpu is created
@@ -88,6 +101,12 @@ struct vcpu {
 	void *stats; /* (a,i) statistics */
 	struct vm_exit exitinfo; /* (x) exit reason and collateral */
 	uint64_t nextrip; /* (x) next instruction to execute */
+#ifdef XHYVE_CONFIG_NESTED
+	struct nested {
+		bool is_vmxon;
+		struct vmcs02 child_vms;
+	} nested; /* (x) Data for nested virtualization */
+#endif
 };
 
 #define vcpu_lock_init(v) (v)->lock = OS_SPINLOCK_INIT;
@@ -131,6 +150,22 @@ struct vm {
 	struct vcpu vcpu[VM_MAXCPU]; /* (i) guest vcpus */
 };
 #pragma clang diagnostic pop
+
+#ifdef XHYVE_CONFIG_NESTED
+bool nested_is_vmxon(struct vm *vm, int vcpuid) {
+	fprintf(stderr, "DEBUG: vmxon %s\n", vm->vcpu[vcpuid].nested.is_vmxon ?
+			"true" : "false");
+	return vm->vcpu[vcpuid].nested.is_vmxon;
+}
+
+void nested_set_vmxon(struct vm *vm, int vcpuid, bool value) {
+	fprintf(stderr, "DEBUG: vmxon before %s\n", vm->vcpu[vcpuid].nested.is_vmxon ?
+			"true" : "false");
+	vm->vcpu[vcpuid].nested.is_vmxon = value;
+	fprintf(stderr, "DEBUG: vmxon after %s\n", vm->vcpu[vcpuid].nested.is_vmxon ?
+			"true" : "false");
+}
+#endif
 
 static int vmm_initialized;
 

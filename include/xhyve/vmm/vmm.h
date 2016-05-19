@@ -311,4 +311,9 @@ void vm_inject_pf(void *vm, int vcpuid, int error_code, uint64_t cr2);
 
 int vm_restart_instruction(void *vm, int vcpuid);
 
+#ifdef XHYVE_CONFIG_NESTED
+bool nested_is_vmxon(struct vm *vm, int vcpuid);
+void nested_set_vmxon(struct vm *vm, int vcpuid, bool value);
+#endif
+
 #pragma clang diagnostic pop
