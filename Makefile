@@ -11,6 +11,7 @@ include config.mk
 VMM_SRC := \
 	src/vmm/x86.c \
 	src/vmm/vmm.c \
+	src/vmm/nested.c \
 	src/vmm/vmm_host.c \
 	src/vmm/vmm_mem.c \
 	src/vmm/vmm_lapic.c \

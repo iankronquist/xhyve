@@ -1,13 +1,15 @@
 ###############################################################################
 # Config                                                                      #
 #                                                                             #
+# [XHYVE_CONFIG_NESTED] Nested VMs
 # [XHYVE_CONFIG_ASSERT] VMM asserts (disable for release builds?)             #
 # [XHYVE_CONFIG_TRACE]  VMM event tracer                                      #
 # [XHYVE_CONFIG_STATS]  VMM event profiler                                    #
 ###############################################################################
 
 DEFINES := \
-  -DXHYVE_CONFIG_ASSERT
+  -DXHYVE_CONFIG_ASSERT \
+  -DXHYVE_CONFIG_NESTED
 
 ###############################################################################
 # Toolchain                                                                   #
