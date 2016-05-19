@@ -257,6 +257,10 @@ x86_emulate_cpuid(struct vm *vm, int vcpu_id,
 			 */
 			regs[2] &= ~((unsigned) CPUID2_TSCDLT);
 
+#ifdef NESTED_VIRT
+			regs[2] |= CPUID_0000_0001_FEAT0_VMX;
+#endif
+
 			/*
 			 * Hide thermal monitoring
 			 */
